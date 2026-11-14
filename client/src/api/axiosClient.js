@@ -1,10 +1,9 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+  baseURL: `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api`,
 });
 
-// Automatically attach the JWT token to requests if the user is logged in
 axiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
