@@ -1,13 +1,16 @@
-// client/src/api/axiosClient.js
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-axios.post(`${API_URL}/api/auth/register`, formData)
-
-API.interceptors.request.use((req) => {
-    const token = localStorage.getItem('token');
-    if (token) req.headers.Authorization = `Bearer ${token}`;
-    return req;
+const axiosClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
 });
 
-export default API;
+// Automatically attach the JWT token to requests if the user is logged in
+axiosClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export default axiosClient;
