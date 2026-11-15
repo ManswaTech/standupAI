@@ -23,18 +23,18 @@ export default function Register() {
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await API.post('/auth/register', form);
-            alert('Registration successful! Please login.');
-            navigate('/login');
-        } catch (err) {
-            alert(err.response?.data?.message || 'Registration failed');
-        } finally {
-            setLoading(false);
-        }
-    };
+    e.preventDefault();
+    setLoading(true);
+    try {
+        const res = await API.post('/auth/register', form);
+        alert(res.data?.message || 'Registration approved! Confirmation email sent.');
+        navigate('/login');
+    } catch (err) {
+        alert(err.response?.data?.message || 'Registration failed');
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className={`min-h-screen flex flex-col justify-between transition-colors duration-300 font-sans ${darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>

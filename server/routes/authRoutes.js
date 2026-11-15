@@ -1,18 +1,32 @@
-const express = require('express');const router = express.Router();
+const express = require('express');
+const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware');
 const verifyRole = require('../middleware/roleMiddleware');
+const { sendEmail, verifyEmailValid } = require('../utils/sendEmail');
 
 // Register Route
 router.post('/register', async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
-        
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ message: 'User already exists.' });
 
+        // 1. Reject immediately if email is invalid or domain cannot receive mail
+        const isValid = await verifyEmailValid(email);
+        if (!isValid) {
+            return res.status(400).json({
+                message: 'Invalid email address. Registration not approved.',
+            });
+        }
+
+        // 2. Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'User already exists.' });
+        }
+
+        // 3. Hash password and approve registration in MongoDB
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = new User({
             name,
@@ -22,7 +36,37 @@ router.post('/register', async (req, res) => {
         });
 
         await newUser.save();
-        res.status(201).json({ message: 'User registered successfully.' });
+
+        // 4. Send confirmation email to the verified address
+        try {
+            await sendEmail({
+                to: newUser.email,
+                subject: 'Welcome to SmartTeam — Registration Approved',
+                html: `
+                    <h2>Welcome to SmartTeam, ${newUser.name}!</h2>
+                    <p>Your registration for <strong>${newUser.email}</strong> has been approved.</p>
+                    <p>Your default role is <strong>${newUser.role}</strong>.</p>
+                    <br />
+                    <p>— SmartTeam</p>
+                `,
+            });
+        } catch (emailErr) {
+            // Roll back user creation if SMTP rejects the address
+            await User.findByIdAndDelete(newUser._id);
+            return res.status(400).json({
+                message: 'Could not deliver confirmation email. Registration not approved.',
+            });
+        }
+
+        res.status(201).json({
+            message: 'Registration approved! Confirmation email sent.',
+            user: {
+                id: newUser._id,
+                name: newUser.name,
+                email: newUser.email,
+                role: newUser.role,
+            },
+        });
     } catch (err) {
         console.error('Register error:', err);
         res.status(500).json({ message: 'Server error during registration.' });
@@ -57,7 +101,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// GET all users (Admin only)
 // GET all users (Admin only - excluding currently logged-in admin)
 router.get('/users', authMiddleware, verifyRole(['admin']), async (req, res) => {
     try {
