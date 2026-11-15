@@ -1,4 +1,3 @@
-const nodemailer = require('nodemailer');
 const dns = require('dns').promises;
 
 const verifyEmailValid = async (email) => {
@@ -16,26 +15,25 @@ const verifyEmailValid = async (email) => {
 };
 
 const sendEmail = async ({ to, subject, html }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    throw new Error('EMAIL_USER or EMAIL_PASS is missing in .env');
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER.trim(),
-      pass: process.env.EMAIL_PASS.replace(/\s+/g, ''),
+  const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json',
     },
+    body: JSON.stringify({
+      sender: { name: 'SmartTeam', email: process.env.EMAIL_USER },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
   });
 
-  await transporter.sendMail({
-    from: `"SmartTeam" <${process.env.EMAIL_USER.trim()}>`,
-    to,
-    subject,
-    html,
-  });
+  if (!response.ok) {
+    const errData = await response.text();
+    throw new Error(`Brevo API error (${response.status}): ${errData}`);
+  }
 };
 
 module.exports = { sendEmail, verifyEmailValid };
