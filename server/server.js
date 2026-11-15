@@ -5,19 +5,28 @@ const cors = require('cors');
 const initStandupCron = require('./jobs/standupCron');
 
 const app = express();
-app.use(express.json());
 
-// Middleware: Allow local dev AND your deployed Vercel frontend
-const allowedOrigins = [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    process.env.CLIENT_URL // e.g., https://standup-ai.vercel.app (no trailing slash)
-].filter(Boolean);
-
-app.use(cors({
-    origin: allowedOrigins,
+// CORS Middleware: Allow local dev AND all Vercel deployment/preview URLs
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (
+            origin.startsWith('http://localhost:') ||
+            origin.endsWith('.vercel.app') ||
+            (process.env.CLIENT_URL && origin === process.env.CLIENT_URL)
+        ) {
+            return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+app.use(express.json());
 
 // Health check route (useful for keeping Render awake)
 app.get('/', (req, res) => {
