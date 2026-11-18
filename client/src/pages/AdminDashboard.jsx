@@ -5,8 +5,6 @@ import API from '../api/axiosClient';
 export default function AdminDashboard() {
     const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
     const [users, setUsers] = useState([]);
-    const [editingUser, setEditingUser] = useState(null);
-    const [formData, setFormData] = useState({ name: '', email: '', role: 'employee' });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -31,17 +29,6 @@ export default function AdminDashboard() {
             setUsers(users.filter(u => u._id !== id));
         } catch (err) {
             alert('Failed to delete user.');
-        }
-    };
-
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await API.put(`/auth/users/${editingUser._id}`, formData);
-            setUsers(users.map(u => (u._id === editingUser._id ? res.data.user : u)));
-            setEditingUser(null);
-        } catch (err) {
-            alert('Failed to update user details.');
         }
     };
 
@@ -95,13 +82,7 @@ export default function AdminDashboard() {
                                                 <option value="admin">Admin</option>
                                             </select>
                                         </td>
-                                        <td className="py-3 text-right space-x-2">
-                                            <button 
-                                                onClick={() => { setEditingUser(u); setFormData({ name: u.name, email: u.email, role: u.role }); }}
-                                                className="px-3 py-1 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 rounded text-xs font-semibold cursor-pointer"
-                                            >
-                                                Edit
-                                            </button>
+                                        <td className="py-3 text-right">
                                             <button 
                                                 onClick={() => handleDelete(u._id)}
                                                 className="px-3 py-1 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded text-xs font-semibold cursor-pointer"
@@ -116,41 +97,6 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             </main>
-
-            {/* Edit User Modal */}
-            {editingUser && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                    <div className={`w-full max-w-md p-6 rounded-2xl border shadow-xl ${darkMode ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'}`}>
-                        <h3 className="text-lg font-bold mb-4">Edit User Credentials</h3>
-                        <form onSubmit={handleEditSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-xs mb-1 opacity-80">Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    className={`w-full p-2.5 border rounded-lg text-sm ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50'}`}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs mb-1 opacity-80">Email</label>
-                                <input
-                                    type="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    className={`w-full p-2.5 border rounded-lg text-sm ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-50'}`}
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="submit" className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer">Save Changes</button>
-                                <button type="button" onClick={() => setEditingUser(null)} className={`flex-1 py-2 border rounded-xl text-xs font-semibold cursor-pointer ${darkMode ? 'border-slate-700 hover:bg-slate-800' : 'border-slate-300 hover:bg-slate-100'}`}>Cancel</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
